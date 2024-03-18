@@ -1,0 +1,99 @@
+DIGEST 7f6aced5b41b7a297d6a4ee05325238e
+Ftermination.checker
+R15:28 Coq.Vectors.Vector <> <> lib
+R46:51 Coq.ZArith.ZArith <> <> lib
+R143:152 termination.constraint <> <> lib
+R163:177 Coq.Vectors.Vector VectorNotations <> mod
+def 382:392 <> imp_checker
+R401:403 Coq.Init.Datatypes <> nat ind
+binder 395:397 <> n_v:1
+R413:415 Coq.Init.Datatypes <> nat ind
+binder 407:409 <> n_c:2
+R448:451 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R429:439 termination.constraint <> constraints def
+R441:443 termination.checker <> n_v:1 var
+R445:447 termination.checker <> n_c:2 var
+R467:470 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R453:462 termination.constraint <> constraint def
+R464:466 termination.checker <> n_v:1 var
+R471:474 Coq.Init.Datatypes <> bool ind
+def 489:503 <> imp_checker_snd
+R512:514 Coq.Init.Datatypes <> nat ind
+binder 506:508 <> n_v:3
+R524:526 Coq.Init.Datatypes <> nat ind
+binder 518:520 <> n_c:4
+R539:549 termination.checker <> imp_checker def
+R552:552 Coq.Init.Datatypes <> S constr
+R554:556 termination.checker <> n_v:3 var
+R559:561 termination.checker <> n_c:4 var
+binder 531:534 <> chkr:5
+binder 583:584 <> cs:6
+binder 586:586 <> c:7
+R609:616 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R602:604 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R593:596 termination.checker <> chkr:5 var
+R598:599 termination.checker <> cs:6 var
+R601:601 termination.checker <> c:7 var
+R605:608 Coq.Init.Datatypes <> true constr
+R634:643 termination.constraint <> assignment def
+R646:648 termination.checker <> n_v:3 var
+binder 625:629 <> model:8
+R698:701 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R691:693 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R654:661 termination.constraint <> is_model def
+R664:664 Coq.Init.Datatypes <> S constr
+R666:668 termination.checker <> n_v:3 var
+R671:673 termination.checker <> n_c:4 var
+R675:676 termination.checker <> cs:6 var
+R679:683 termination.constraint <> adapt def
+R685:689 termination.checker <> model:8 var
+R694:697 Coq.Init.Datatypes <> true constr
+R737:739 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R703:712 termination.constraint <> is_model_c def
+R715:715 Coq.Init.Datatypes <> S constr
+R717:719 termination.checker <> n_v:3 var
+R722:722 termination.checker <> c:7 var
+R725:729 termination.constraint <> adapt def
+R731:735 termination.checker <> model:8 var
+R740:743 Coq.Init.Datatypes <> true constr
+prf 833:844 <> farkas_equal
+R866:868 Coq.Init.Datatypes <> nat ind
+binder 856:858 <> n_v:9
+binder 860:862 <> n_c:10
+R876:876 Coq.Vectors.Vector <> t ind
+R878:880 Coq.Init.Datatypes <> nat ind
+R882:884 termination.checker <> n_c:10 var
+binder 872:872 <> d:11
+R890:904 termination.checker <> imp_checker_snd def
+R906:908 termination.checker <> n_v:9 var
+R910:912 termination.checker <> n_c:10 var
+R915:922 termination.constraint <> is_equal def
+R924:924 termination.checker <> d:11 var
+R964:978 termination.checker <> imp_checker_snd def
+R990:997 termination.constraint <> is_equal def
+R1129:1134 Coq.Vectors.Vector <> eqb_eq thm
+R1129:1134 Coq.Vectors.Vector <> eqb_eq thm
+R1129:1134 Coq.Vectors.Vector <> eqb_eq thm
+R1129:1134 Coq.Vectors.Vector <> eqb_eq thm
+R1186:1190 Coq.Vectors.Vector <> const def
+R1195:1195 Coq.Init.Datatypes <> S constr
+R1186:1190 Coq.Vectors.Vector <> const def
+R1195:1195 Coq.Init.Datatypes <> S constr
+R1215:1224 termination.constraint <> is_model_c def
+R1256:1266 termination.constraint <> eval_0_gt_0 thm
+R1256:1266 termination.constraint <> eval_0_gt_0 thm
+R1256:1266 termination.constraint <> eval_0_gt_0 thm
+R1296:1303 Coq.ZArith.BinInt Z eqb_eq thm
+R1296:1303 Coq.ZArith.BinInt Z eqb_eq thm
+R1356:1361 Coq.Vectors.Vector <> eqb_eq thm
+R1356:1361 Coq.Vectors.Vector <> eqb_eq thm
+R1356:1361 Coq.Vectors.Vector <> eqb_eq thm
+R1356:1361 Coq.Vectors.Vector <> eqb_eq thm
+R1428:1437 termination.constraint <> comb_conic def
+R1428:1437 termination.constraint <> comb_conic def
+R1481:1496 termination.constraint <> comb_conic_is_gt thm
+R1481:1496 termination.constraint <> comb_conic_is_gt thm
+R1481:1496 termination.constraint <> comb_conic_is_gt thm
+R1481:1496 termination.constraint <> comb_conic_is_gt thm
+R1568:1575 Coq.ZArith.BinInt Z eqb_eq thm
+R1568:1575 Coq.ZArith.BinInt Z eqb_eq thm
