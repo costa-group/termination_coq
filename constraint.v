@@ -1,5 +1,7 @@
 Require Import Vectors.Vector.
 Require Import ZArith.
+Require Import Coq.Classes.RelationClasses.
+Require Import Lia.
 
 Import VectorNotations.
 
@@ -224,24 +226,56 @@ Proof. reflexivity. Qed.
 Example test_is_gt_on_last_3 : is_gt_on_last [1;3;3] [1;2;3] = false.
 Proof. reflexivity. Qed.
 
-
-Lemma hd_is_eq : forall {n_v : nat} (c c' : constraint), @is_gt_on_last (S n_v) c c' = true -> hd c =? hd c' = true.
-Proof. Admitted.
- 
-(*Lemma that states that if a constraint satisfies a certain model, then the same constraint with greater constant
-  satisfies the same model*)
-Lemma gt_const_is_model : forall {n_v : nat} (c c' : constraint),
-    @is_gt_on_last (S n_v) c c' = true -> forall (model : @assignment n_v), is_model_c c (adapt model) = true -> is_model_c c' (adapt model) = true.
+Lemma eval_is_gt : forall {n_v :nat} (c c' : @constraint ( S n_v)) (model : assignment),
+    @is_gt_on_last (S n_v) c c' = true -> (*is_model_c c model = true ->*)
+    @eval (S n_v) c' (adapt model) >= @eval (S n_v) c (adapt model).
 Proof.
-  intros n_v. unfold is_model_c.
+  intro n_v.
   induction n_v as [| n_v' IHn_v'].
-  - (*n_v = 0*) simpl. intros c c'. intro c0_gt_c'0. simpl.
-    intro model.
-    repeat rewrite le_snd. repeat rewrite <- Zred_factor0. repeat rewrite Z.add_0_r.
-    repeat rewrite Z.ge_le_iff.
-    intro hd_c_gt_0. simpl in c0_gt_c'0.
-    rewrite le_snd in c0_gt_c'0. rewrite Z.ge_le_iff in c0_gt_c'0. rewrite <- c0_gt_c'0.
-    exact hd_c_gt_0.
-  - (* n_v = S n_v'*)
+  - (*n_v = 0 -> S n_v = 1 *)
+    (*Caso en que solo tenemos la constante*)
+    intros c c' model.
+    intro is_gt_on_last_true.
+    simpl. simpl in is_gt_on_last_true. rewrite le_snd in is_gt_on_last_true.
+    lia.
+  - (*n_v = S n_v' -> S n_v = S S n_v'*)
+    (*Caso en que tenemos algo más que la constante*)
+    intros c c' model.
+    intro is_gt_on_last_true. simpl in is_gt_on_last_true.
+    destruct n_v'.
+    2: {
+      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
+      rewrite eq_snd in H. unfold is_model_c. (*intro eval_c_gt_0.
+      rewrite le_snd in eval_c_gt_0.*) apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
+      simpl. rewrite H. simpl in H0. lia.      
+    }
+    1: {
+      (*n_v' = 0*)
+      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
+      rewrite eq_snd in H. rewrite le_snd in H0.
+      simpl. repeat rewrite Z.add_0_r. repeat rewrite <- Zred_factor0.
+      lia.
+    }
+Qed.
+
     
-       
+(*Lemma that states that if a constraint satisfies a certain model, then the same
+ constraint with greater constant satisfies the same model*)
+Lemma farkas_gt : forall {n_v : nat},
+  forall (c c' : @constraint (S n_v)) (model : @assignment n_v),
+    is_model_c c (adapt model) = true
+    -> @is_gt_on_last (S n_v) c c' = true                                   
+    -> is_model_c c' (adapt model) = true.
+Proof.
+  intros n_v c c' model.
+  unfold is_model_c.
+  intro is_model_c. rewrite le_snd in is_model_c.
+  intro is_gt_on_last_true.
+  apply (@eval_is_gt (n_v) c c' (model)) in is_gt_on_last_true.
+  rewrite le_snd.
+  apply (@Zge_trans (eval c' (adapt model)) (eval c (adapt model)) 0).
+  exact is_gt_on_last_true.
+  exact is_model_c.
+Qed.
+
+
