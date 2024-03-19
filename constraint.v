@@ -243,39 +243,16 @@ Proof.
     intros c c' model.
     intro is_gt_on_last_true. simpl in is_gt_on_last_true.
     destruct n_v'.
-    2: {
-      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
-      rewrite eq_snd in H. unfold is_model_c. (*intro eval_c_gt_0.
-      rewrite le_snd in eval_c_gt_0.*) apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
-      simpl. rewrite H. simpl in H0. lia.      
-    }
-    1: {
-      (*n_v' = 0*)
+    --(*n_v' = 0*)
       rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
       rewrite eq_snd in H. rewrite le_snd in H0.
       simpl. repeat rewrite Z.add_0_r. repeat rewrite <- Zred_factor0.
       lia.
-    }
-Qed.
-
-    
-(*Lemma that states that if a constraint satisfies a certain model, then the same
- constraint with greater constant satisfies the same model*)
-Lemma farkas_gt : forall {n_v : nat},
-  forall (c c' : @constraint (S n_v)) (model : @assignment n_v),
-    is_model_c c (adapt model) = true
-    -> @is_gt_on_last (S n_v) c c' = true                                   
-    -> is_model_c c' (adapt model) = true.
-Proof.
-  intros n_v c c' model.
-  unfold is_model_c.
-  intro is_model_c. rewrite le_snd in is_model_c.
-  intro is_gt_on_last_true.
-  apply (@eval_is_gt (n_v) c c' (model)) in is_gt_on_last_true.
-  rewrite le_snd.
-  apply (@Zge_trans (eval c' (adapt model)) (eval c (adapt model)) 0).
-  exact is_gt_on_last_true.
-  exact is_model_c.
+    --(*n_v' = S n_''*)
+      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
+      rewrite eq_snd in H. unfold is_model_c. (*intro eval_c_gt_0.
+      rewrite le_snd in eval_c_gt_0.*) apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
+      simpl. rewrite H. simpl in H0. lia.      
 Qed.
 
 
