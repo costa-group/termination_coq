@@ -106,6 +106,8 @@ Proof.
   reflexivity. rewrite m_gt_z. reflexivity. rewrite n_gt_z. reflexivity.
 Qed.
 
+(*Propiedades sobre la suma y el producto con escalares de vectores*)
+
 Lemma vect_add_snd : forall {n_v : nat} (c1 c2 : @constraint n_v) (model : @assignment n_v),
    (eval c1 model) + (eval c2 model) = eval (vect_add c1 c2) model.
 Proof.
@@ -131,8 +133,22 @@ Proof.
     reflexivity.
     rewrite c1_gt_z. reflexivity.
     rewrite c2_gt_z. reflexivity.
-Qed.   
-
+Qed. 
+  
+Lemma vect_add_lt_is_lt : forall {n_v : nat} (c1 c2 : @constraint n_v) (model : @assignment n_v),
+    eval (vect_add c1 c2) model < 0 ->
+    eval c1 model < 0 \/ eval c2 model < 0.
+Proof.
+  intros n_v c1 c2 model.
+  induction n_v as [| n_v' IHn_v'].
+  - (* n_v = 0 *)
+    simpl. lia.
+  - (* n_v = S n_v' *)
+    rewrite <- vect_add_snd.
+    Search Z.add ?p ?g Z.lt 0.
+    apply Z.add_neg_cases.
+Qed.
+    
 Lemma vect_mul_snd : forall {n_v : nat} (c : @constraint n_v) (model : @assignment n_v) (d : nat),
     (Z.of_nat(d) * eval c model = eval (vect_mul d c) model).
 Proof.
@@ -159,7 +175,15 @@ Proof.
   rewrite c_gt_z. 
   reflexivity.
 Qed.
-  
+
+Lemma vect_mul_lt_is_lt : forall {n_v : nat} (d : nat ) (c : @constraint n_v) (model : @assignment n_v),
+    eval (vect_mul d c) model < 0 -> eval c model < 0.
+Proof.
+  intros n d c model.
+  rewrite <- vect_mul_snd.
+  lia.
+Qed.
+
 Lemma eval_0_gt_0 : forall (n : nat) (model :  @assignment n),
     eval (const 0 n) model >=? 0 = true.
 Proof.
@@ -250,9 +274,142 @@ Proof.
       lia.
     --(*n_v' = S n_''*)
       rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
-      rewrite eq_snd in H. unfold is_model_c. (*intro eval_c_gt_0.
-      rewrite le_snd in eval_c_gt_0.*) apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
+      rewrite eq_snd in H. unfold is_model_c.
+      apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
       simpl. rewrite H. simpl in H0. lia.      
 Qed.
 
+Fixpoint is_minus_one {n_v : nat} : @constraint (S n_v) -> bool :=
+  match n_v with
+  | 0%nat => fun c => hd c =? -1
+  | S n_v' => fun c => ((hd c =? 0) && (is_minus_one (tl c)))%bool
+  end.
 
+Example test_is_minus_one_1 : is_minus_one [1;2;3] = false.
+Proof. reflexivity. Qed.
+
+Example test_is_minus_one_2 : is_minus_one [0;0;-1] = true.
+Proof. reflexivity. Qed.
+
+Lemma eval_minus_one {n_v : nat} (c : @constraint (S n_v)) :
+  forall (model : @assignment n_v),
+    is_minus_one c = true ->
+    eval c (adapt model) < 0.
+Proof.
+  intros model.
+  induction n_v as [| n_v' IHn_v'].
+  - (* n_v = 0*)
+    simpl. rewrite eq_snd. 
+    rewrite Z.add_0_r. repeat rewrite <- Zred_factor0.
+    lia.
+  - (* n_v = (S n_v')*)  
+    simpl. rewrite Bool.andb_true_iff. intro h. destruct h.
+    rewrite eq_snd in H. rewrite H. apply (@IHn_v' (tl c) (tl model)) in H0.
+    simpl in H0. rewrite Z.mul_0_l. rewrite Z.add_0_l. exact H0.
+Qed.
+
+
+Lemma eval_const_0_is_0 {n_v : nat} :
+  forall model : assignment,
+    eval (const 0 n_v) model = 0.
+Proof.
+  intros model.
+  induction n_v as [| n_v' IHn_v'].
+  - (*n_v = 0*)
+    simpl. reflexivity.
+  - (*n_v = S (n_v') *)
+    simpl. rewrite IHn_v'. reflexivity.
+Qed.
+
+Fixpoint same_vector {n_v : nat} : @constraint n_v -> @constraint n_v -> bool :=
+  match n_v with
+  | 0%nat => fun _ _ => true
+  | S n_v' => fun c1 c2 => ((hd c1 =? hd c2) && (same_vector (tl c1) (tl c2)))%bool
+  end.
+
+Lemma same_vector_refl {n_v : nat} :
+    forall c : @constraint n_v, same_vector c c = true.
+Proof.
+  intro c.
+  induction n_v as [| n_v' IHn_v'].
+  simpl. reflexivity.
+  simpl. rewrite Bool.andb_true_iff. split.
+  rewrite eq_snd. reflexivity. rewrite IHn_v'. reflexivity.
+Qed.
+
+Lemma same_vector_snd {n_v : nat } :
+  forall (c1 c2 : @constraint n_v), same_vector c1 c2 = true -> c1 = c2.
+Proof.
+  intros c1 c2.
+  induction n_v as [| n_v' IHn_v'].
+  - intros same. rewrite nil_spec. rewrite (@nil_spec Z c1). reflexivity.
+  - simpl. intros h. rewrite Bool.andb_true_iff in h. destruct h.
+    apply IHn_v' in H0. rewrite eq_snd in H. rewrite eta. rewrite (@eta Z n_v' c1).
+    rewrite H. rewrite H0. reflexivity.
+Qed.
+    
+Fixpoint is_in_the_vector {n_c n_v : nat} : @constraint n_v -> @constraints n_v n_c -> bool :=
+  match n_c with
+  | 0%nat => fun _ _ => false
+  | S n_c' => fun c cs => (same_vector c (hd cs) || is_in_the_vector c (tl cs))%bool
+  end.
+
+Lemma is_minus_one_implies {n_v n_c : nat} (d : t nat n_c) (cs : @constraints n_v n_c) :
+  forall (model : @assignment n_v),
+    eval (comb_conic d cs)  model < 0 ->
+    exists (c : @constraint n_v), (is_in_the_vector c cs = true) /\ (eval c model) < 0.
+Proof.    
+  intros model.
+  induction n_c as [| n_c' IHn_c'].
+  - (* n_c = 0 *)
+    simpl. rewrite eval_const_0_is_0. lia.
+  - (* n_c = S n_c' *)
+    simpl. intro h.
+    Check vect_add_lt_is_lt.
+    apply vect_add_lt_is_lt in h. destruct h.
+    apply vect_mul_lt_is_lt in H.
+    exists (hd cs). split. rewrite Bool.orb_true_iff.
+    left. simpl. rewrite same_vector_refl. reflexivity.
+    exact H.
+    apply IHn_c' in H. destruct H as [c H].
+    exists c. split. rewrite Bool .orb_true_iff. right.
+    destruct H. exact H.
+    destruct H. exact H0.
+Qed.
+
+Lemma if_constraint_lt_0_model_false {n_v n_c : nat} (cs : @constraints (S n_v) n_c) :
+  forall (model : @assignment n_v),
+    (exists c : @constraint (S n_v), (is_in_the_vector c cs = true) /\ (eval c (adapt model) < 0)) ->
+    is_model cs (adapt model) = false.
+Proof.    
+  intros model.
+  induction n_c as [| n_c' IHn_c'].
+  - simpl. intro h. destruct h. lia.
+  - intro h. simpl in h. destruct h as [c Hc]. destruct Hc. 
+    simpl. rewrite Bool.orb_true_iff in H. destruct H.
+    rewrite Bool.andb_true_iff in H. destruct H. 
+
+    rewrite Bool.andb_false_iff.
+    left.
+    unfold is_model_c. simpl. rewrite Z.geb_leb. rewrite Z.leb_gt.
+    replace (hd cs) with c.
+    exact H0. rewrite eq_snd in H. rewrite  (@eta Z n_v c). rewrite (@eta Z n_v (hd cs)).
+    rewrite H. apply same_vector_snd in H1. rewrite H1. reflexivity.
+
+    rewrite Bool.andb_false_iff. right. apply IHn_c'. exists c.
+    split. exact H.
+    simpl. exact H0.
+Qed.
+    
+Lemma unsta_suf : forall {n_v n_c : nat} (cs : @constraints (S n_v) n_c) (d : t nat n_c),
+    forall (model : @assignment n_v),
+    is_minus_one (comb_conic d cs) = true ->
+    is_model cs (adapt model) = false.
+Proof.
+  intros n_v n_c cs d model.
+  intro is_minus_one.
+  apply (@eval_minus_one n_v (comb_conic d cs) model) in is_minus_one.
+  apply is_minus_one_implies in is_minus_one.
+  apply if_constraint_lt_0_model_false in is_minus_one.
+  exact is_minus_one.
+Qed.
