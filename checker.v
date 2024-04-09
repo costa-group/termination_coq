@@ -90,3 +90,18 @@ Proof.
   apply (@farkas_gt n_v c_comb c model) in h0.
   assumption. assumption. assumption.
 Qed.
+
+    
+Lemma unsat_suf : forall {n_v n_c : nat} (cs : @constraints (S n_v) n_c) (d : t nat n_c),
+    is_minus_one (comb_conic d cs) = true ->
+    forall (model : @assignment n_v),
+    is_model cs (adapt model) = false.
+Proof.
+  intros n_v n_c cs d.
+  intro is_minus_one.
+  intro model.
+  apply (@eval_minus_one n_v (comb_conic d cs) model) in is_minus_one.
+  apply is_minus_one_implies in is_minus_one.
+  apply if_constraint_lt_0_model_false in is_minus_one.
+  exact is_minus_one.
+Qed.

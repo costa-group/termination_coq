@@ -399,17 +399,4 @@ Proof.
     rewrite Bool.andb_false_iff. right. apply IHn_c'. exists c.
     split. exact H.
     simpl. exact H0.
-Qed.
-    
-Lemma unsta_suf : forall {n_v n_c : nat} (cs : @constraints (S n_v) n_c) (d : t nat n_c),
-    forall (model : @assignment n_v),
-    is_minus_one (comb_conic d cs) = true ->
-    is_model cs (adapt model) = false.
-Proof.
-  intros n_v n_c cs d model.
-  intro is_minus_one.
-  apply (@eval_minus_one n_v (comb_conic d cs) model) in is_minus_one.
-  apply is_minus_one_implies in is_minus_one.
-  apply if_constraint_lt_0_model_false in is_minus_one.
-  exact is_minus_one.
-Qed.
+
