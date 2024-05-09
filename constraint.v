@@ -60,6 +60,12 @@ Fixpoint vect_mul {n : nat} (a : nat) (v : t Z n) : t Z n :=
   | b :: v' => (Z.of_nat(a)*b) :: (vect_mul a v')
   end.
 
+Fixpoint vect_mul_Z {n : nat} (a : Z) (v : t Z n) : t Z n :=
+  match v with
+  | [] => []
+  | b :: v' => (a*b) :: (vect_mul_Z a v')
+  end.
+
 (*Given an list of scalars (d1...dn) and a list of costraints (c1..cn) it returns the linear combination (d1*c1 + ... + dn*cn) *)
 Fixpoint comb_conic {n_v : nat} {n_c : nat} : (t nat n_c) -> (@constraints n_v n_c) -> t Z n_v :=
   match n_c with
@@ -399,4 +405,4 @@ Proof.
     rewrite Bool.andb_false_iff. right. apply IHn_c'. exists c.
     split. exact H.
     simpl. exact H0.
-
+Qed.

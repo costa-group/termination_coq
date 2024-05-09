@@ -126,41 +126,96 @@ Qed.
 
 (* We are going to represent the lex rank function as a vector of n variables*)
 
-
 Definition lex_function {n_var : nat} := t Z (S n_var).
 
-Definition from_lex_to_const {n_var : nat} (f : @lex_function n_var) : constraint :=
+
+(*This function receives a lex funciton and returns the corresponding constraint*)
+Definition c_of_f {n_var : nat} (f : @lex_function n_var) :  @constraint (S (n_var + n_var)) :=
   let rev_f := (rev f) in
   let const_f := hd rev_f in
   let coef := rev (tl rev_f) in
-  coef ++ (const 0 n_var) ++ [const_f].
+  shiftin const_f (coef ++ (const 0 n_var)).
 
-Definition from_lex_to_const' {n_var : nat} (f : @lex_function n_var) : constraint :=
+(*This function receives a lex funciton and returns the corresponding constraint with the signus changed*)
+Definition c_of_f' {n_var : nat} (f : @lex_function n_var) :  @constraint (S (n_var + n_var)) :=
   let rev_f := (rev f) in
   let const_f := hd rev_f in
   let coef := rev (tl rev_f) in
-  (const 0 n_var) ++ (map (fun x => -x) coef) ++ [-const_f].
+  shiftin (-const_f) ((const 0 n_var) ++ (map (fun x => -x) coef)).
 
-(*He quereido testar estas funciones pero rev no funciona bien*)
 
-Definition new_constraints {n_v : nat} (c c' : @constraint n_v) : constraints :=
+(* This function returns the constaint that represent the condition f1(x) - f1(x') >= 0 *)
+Definition cs_f_i_minus_f_i' {n_var : nat} (f : @lex_function n_var) : @constraint (S (n_var + n_var)) :=
+  vect_add (c_of_f f)  (c_of_f' f).
+
+Definition cs_f_i'_minus_f_i {n_var : nat} (f : @lex_function n_var) : @constraint (S (n_var + n_var)) :=
+  vect_mul_Z (-1) (cs_f_i_minus_f_i' f).
+
+
+(* This function receive a couple of contraint and returns its composition in a constraints*)
+Definition new_cs {n_var n_c : nat} (cs : @constraints (S (n_var + n_var)) n_c)  (f : @lex_function n_var) : constraints :=
+ shiftin (cs_f_i_minus_f_i' f) (shiftin (cs_f_i'_minus_f_i f) cs).
+
+(*
+
+    list_f = f1::fs ->
+     cs => f1>=0 ->
+      cs =>f1-f1'>=0 ->
+       (Lex f1-f1'<=0::-f1+f1'<=0::cs fs) -> Lex cs list_f
+*)
+
+Definition cs_of_two {n_var : nat} (c c' : @constraint n_var) : constraints :=
   shiftin c' (shiftin c []).
+
+
+Definition cs_f_i_minus_f_i'_is_zero {n_var : nat} (f : @lex_function n_var) :  constraints :=
+  cs_of_two (cs_f_i_minus_f_i' f) (cs_f_i'_minus_f_i f).
+
+Definition hd_t {A} := @caseS _ (fun n v => A) (fun h n t => h).
+
+ Definition tl_t {A} := @caseS _ (fun n v => t A n) (fun h n t => t).
+
+Definition list_d {n : nat} := t nat n.
+
+
+Fixpoint is_lex {n_var n_k n: nat} : constraints -> t (@lex_function n_var) n_k -> t ((@list_d n)*(@list_d n)) (S n_k) -> bool :=
+  match n_k with
+  | 0%nat => fun cs vec_f list_of_d => let d_i := fst (hd_t n_k list_of_d) in is_minus_one (comb_conic d_i cs)
+  | S n_k' => fun cs vec_f list_of_d =>
+                let fi := hd_t n_k' vec_f in
+                let fs := tl_t n_k' vec_f in
+                let f_i := c_of_f fi in
+                let f_i_minus_f_i' := cs_f_i_minus_f_i' fi in
+                (
+                  (is_equal (fst (hd_t n_k list_of_d)) cs f_i) &&
+                    (is_equal (snd (hd_t n_k list_of_d)) cs f_i_minus_f_i') &&
+                    (is_lex (new_cs cs fi) fs (tl_t n_k list_of_d))
+                )%bool
+  end.
 
 
 Require Import List.
 
 Import ListNotations.
-Local Open Scope list_scope.
 
-Inductive Lex (cs : constraints) (list_f : list lex_function) : Prop :=
-| basic : unsat cs -> (Lex cs []).
-| other :
-  let f1_x := from_lex_to_const (hd list_f) in
-  let f1_x' := from_lex_to_const' (hd list_f) in
-  let f1_x'_minus_f1_x := vect_add f1_x f1_x' in
-  (Lex (cs ++ f1_x ++ f1_x'_minus_f1_x) (tl list_f)) ->
-  (cs_imp_cs' cs (new_constraints f1_x' f1_x'_minus_f1_x)) ->
-  Lex cs list_f.
-end.
+(*Inductive proposition on the lex functions*)
+Inductive Lex {n_var n_c : nat} : (@constraints (S (n_var + n_var)) n_c) -> list (@lex_function n_var) -> Prop :=
+| basic
+    (cs : (@constraints (S (n_var + n_var)) n_c))
+    (list_f : list (@lex_function n_var))
+    (H : (length list_f) = 0%nat)
+    (H1 : unsat cs)
+  : (Lex cs list_f)    
+| other
+    (cs : (@constraints (S (n_var + n_var)) n_c))
+    (list_f : list (@lex_function n_var))
+    (f : @lex_function n_var)
+    (fs : list (@lex_function n_var))
+    (Hl : (length list_f) = S (length fs))
+    (H' : list_f = f::fs)
+    (H1 : Lex  (new_cs cs f) fs)
+    (H2 : cs_imp_cs' cs (cs_f_i_minus_f_i'_is_zero f))
+  : (Lex cs list_f).
+                                                 
+                                                   
 
-  
