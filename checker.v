@@ -171,32 +171,34 @@ Definition cs_of_two {n_var : nat} (c c' : @constraint n_var) : constraints :=
 Definition cs_f_i_minus_f_i'_is_zero {n_var : nat} (f : @lex_function n_var) :  constraints :=
   cs_of_two (cs_f_i_minus_f_i' f) (cs_f_i'_minus_f_i f).
 
-Definition hd_t {A} := @caseS _ (fun n v => A) (fun h n t => h).
-
- Definition tl_t {A} := @caseS _ (fun n v => t A n) (fun h n t => t).
-
-Definition list_d {n : nat} := t nat n.
-
-
-Fixpoint is_lex {n_var n_k n: nat} : constraints -> t (@lex_function n_var) n_k -> t ((@list_d n)*(@list_d n)) (S n_k) -> bool :=
-  match n_k with
-  | 0%nat => fun cs vec_f list_of_d => let d_i := fst (hd_t n_k list_of_d) in is_minus_one (comb_conic d_i cs)
-  | S n_k' => fun cs vec_f list_of_d =>
-                let fi := hd_t n_k' vec_f in
-                let fs := tl_t n_k' vec_f in
-                let f_i := c_of_f fi in
-                let f_i_minus_f_i' := cs_f_i_minus_f_i' fi in
-                (
-                  (is_equal (fst (hd_t n_k list_of_d)) cs f_i) &&
-                    (is_equal (snd (hd_t n_k list_of_d)) cs f_i_minus_f_i') &&
-                    (is_lex (new_cs cs fi) fs (tl_t n_k list_of_d))
-                )%bool
-  end.
-
+Definition list_d := list nat.
 
 Require Import List.
 
 Import ListNotations.
+
+Fixpoint is_lex {n_var n_c : nat} (cs : @constraints (S (n_var + n_var)) n_c) (list_f : list (@lex_function n_var)) (list_of_d : list ((list_d)*(list_d))) : bool :=
+  match list_f with
+  | [] => match list_of_d with
+          | [] => false
+          | d::ds => let d_i := fst d in
+                     let vec_d := of_list d_i in
+                     if (length d_i =? n_c)%nat then is_minus_one (comb_conic vec_d cs)
+                     else false
+          end
+  | f::fs =>let f_i := c_of_f f in
+            let f_i_minus_f_i' := cs_f_i_minus_f_i' f in
+            match list_of_d with
+            | [] => false
+            | d::ds => ((is_equal (fst d) cs f_i) &&
+                          (is_equal (snd d) cs f_i_minus_f_i') &&
+                          (is_lex (new_cs cs f) fs ds)
+                       )%bool
+            end
+  end.
+ 
+
+
 
 (*Inductive proposition on the lex functions*)
 Inductive Lex {n_var n_c : nat} : (@constraints (S (n_var + n_var)) n_c) -> list (@lex_function n_var) -> Prop :=
