@@ -2,6 +2,10 @@ Require Import Vectors.Vector.
 Require Import ZArith.
 Require Import Lia.
 
+(*For extraction*)
+Require Coq.extraction.Extraction.
+Extraction Language OCaml.
+
 (*We import the definions and functions we defined for the constraints*)
 Require Import constraint.
 
@@ -300,3 +304,7 @@ Proof.
        --- apply Bool.diff_false_true in H.
            contradiction.
 Qed.         
+
+(*Functions for the extraction of the is_lex function*)
+
+Extraction "termination.ml" is_lex.
