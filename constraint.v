@@ -285,27 +285,27 @@ Proof.
       simpl. rewrite H. simpl in H0. lia.      
 Qed.
 
-Fixpoint is_minus_one {n_v : nat} : @constraint (S n_v) -> bool :=
+Fixpoint is_minus {n_v : nat} : @constraint (S n_v) -> bool :=
   match n_v with
-  | 0%nat => fun c => hd c =? -1
-  | S n_v' => fun c => ((hd c =? 0) && (is_minus_one (tl c)))%bool
+  | 0%nat => fun c => hd c <? 0
+  | S n_v' => fun c => ((hd c =? 0) && (is_minus (tl c)))%bool
   end.
 
-Example test_is_minus_one_1 : is_minus_one [1;2;3] = false.
+Example test_is_minus_one_1 : is_minus [1;2;3] = false.
 Proof. reflexivity. Qed.
 
-Example test_is_minus_one_2 : is_minus_one [0;0;-1] = true.
+Example test_is_minus_one_2 : is_minus [0;0;-1] = true.
 Proof. reflexivity. Qed.
 
 Lemma eval_minus_one {n_v : nat} (c : @constraint (S n_v)) :
   forall (model : @assignment n_v),
-    is_minus_one c = true ->
+    is_minus c = true ->
     eval c (adapt model) < 0.
 Proof.
   intros model.
   induction n_v as [| n_v' IHn_v'].
   - (* n_v = 0*)
-    simpl. rewrite eq_snd. 
+    simpl. rewrite Z.ltb_lt.  
     rewrite Z.add_0_r. repeat rewrite <- Zred_factor0.
     lia.
   - (* n_v = (S n_v')*)  

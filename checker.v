@@ -305,6 +305,3 @@ Proof.
            contradiction.
 Qed.         
 
-(*Functions for the extraction of the is_lex function*)
-
-Extraction "termination.ml" is_lex.

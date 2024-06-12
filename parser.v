@@ -1,5 +1,6 @@
 From Coq Require Import Numbers.DecimalString.
 From Coq Require Import Numbers.HexadecimalNat.
+From Coq Require Import ZArith.
 From Coq Require Import Strings.String.
 From Coq Require Import Strings.Ascii.
 Require Import Hexadecimal HexadecimalFacts Arith.
@@ -35,7 +36,6 @@ Definition string_of_list (xs : list ascii) : string :=
 
 Definition token := string.
 
-
 Fixpoint tokenize_helper (cls : chartype) (acc xs : list ascii)
                        : list (list ascii) :=
   let tk := match acc with [] => [] | _::_ => [rev acc] end in
@@ -67,60 +67,6 @@ Fixpoint parseDecNumber' (x : list ascii) (acc : nat) :=
 Definition parseDecNumber (x : string) : option nat :=
   parseDecNumber' (list_of_string x) 0.
 
-Require Import ZArith String Ascii.
-Open Scope Z_scope. 
-
-Definition Z_of_bool (b : bool) := if b then 1 else 0.
-
-(* This coercion is used to make the next function shorter to write and read *)
-
-Coercion Z_of_bool : bool >-> Z.
-
-Definition Z_of_ascii a :=
-  match a with
-   Ascii b1 b2 b3 b4 b5 b6 b7 b8 =>
-     b1 + 2 * (b2 + 2 * (b3 + 2 * (b4 + 2 *
-      (b5 + 2 * (b6 + 2 * (b7 + 2 * b8))))))
-  end.
-
-Compute Z_of_ascii  "a".
-
-Definition Z_of_0 := Eval compute in Z_of_ascii "0".
-
-Definition Z_of_digit a := 
-   let v := Z_of_ascii a - Z_of_0 in
-   match v ?= 0 with
-     Lt => None | Eq => Some v | 
-     Gt => match v ?= 10 with Lt => Some v | _ => None end
-   end.
-
-Compute Z_of_digit "1".
-
-Fixpoint parseZNumber' (x : list ascii) (acc : Z) :=
-  match x with
-  | [] => Some acc
-  | d::ds => let n := Z_of_digit d in
-             match n with
-             | Some n_0 => parseZNumber' ds (acc*10 + n_0)
-             | None => None
-             end
-  end.
-
-Compute parseZNumber' (list_of_string "1234") 0.
-
-Definition parseZNumber (x : string) : option Z :=
-  parseZNumber' (list_of_string x) 0.
-
-Fixpoint parseZList (x : list string) : list Z :=
-  match x with
-  | [] => []
-  | x_0::xs => let num := (parseZNumber x_0) in
-               match num with
-               | Some z_0 => z_0::(parseZList xs)
-               | None => []
-               end
-  end.
-
 Fixpoint parseNatList (x : list string) : list nat :=
   match x with
   | [] => []
@@ -128,8 +74,30 @@ Fixpoint parseNatList (x : list string) : list nat :=
                match num with
                | Some z_0 => z_0::(parseNatList xs)
                | None => []
-               end
+               end  
   end.
+
+Search Z ?p ?q.
+
+Fixpoint parseZList (x : list string) : list Z :=
+  match x with
+  | [] => []
+  | x_0::xs => if ((substring 0 1 x_0) =? "-"%string)%string then
+                 let n_x_0 := substring 1 ((String.length x_0) - 1) x_0 in
+                 let num := (parseDecNumber n_x_0) in
+                 match num with
+                 | Some z_0 => (Z.opp (Z.of_nat z_0))::(parseZList xs)
+                 | None => []
+                 end
+               else
+                 let num := (parseDecNumber x_0) in
+                 match num with
+                 | Some z_0 => (Z.of_nat z_0)::(parseZList xs)
+                 | None => []
+                 end
+  end.
+
+Compute parseZList ["34"%string].
 
 Definition get_num_var (x : list string) : option nat :=
   match parseNatList x with
@@ -159,6 +127,7 @@ Import VectorNotations.
 
 
 Local Open Scope vector_scope.
+Open Scope Z_scope.
 
 Fixpoint my_of_list_Z (n : nat) (l: list Z) : option (t Z n) :=
   match l with
@@ -255,7 +224,7 @@ Fixpoint ensure_d' (res aux x : list (list nat)) : option (list ((list_d)*(list_
           end
   | x'::xs => match aux with
               | [] => ensure_d' res (aux++[x']) xs
-              | _ => ensure_d' (res++aux) [] xs
+              | _ => ensure_d' (res++aux++[x']) [] xs
               end       
 end.
 
@@ -306,8 +275,43 @@ Definition check_loop (x : list (list string)) : bool :=
                 end
   end.
 
-Compute check_loop [(tokenize "3");(tokenize "4"); (tokenize "1 2 3 1 2 3 1 ; 3 4 5 1 2 3 1 ; 6 7 8 1 2 3 4 ; 6 7 8 7 8 7 8 ;") ; (tokenize "1 2 3 4 ; 1 2 3 4 ; 1 2 3 4 ;") ; (tokenize "1 2 3 5 ; 1 2 3 4 ; 1 2 3 ; 1 2 3 ; 1 2 ; 1 2 ; 1 ; 0 ;")].
-                                                           
-  
+Compute check_loop [(tokenize "3 ; ");
+                    (tokenize "7 ; ");
+                    (tokenize " 1  0  0  0  0  0  0 ;
+                                0  1  0  0  0  0  0 ;
+                                1  0  1  0  0  0  0 ;
+                                1 -1  0  0  1  0  0 ;
+                               -1  1  0  0 -1  0  0 ;
+                               -1  0 -1  0  0  1  2 ;
+                                1  0  1  0  0 -1 -2 ; ") ;
+                    (tokenize " 0  1  0  0 ;
+                                0  0  1  0 ;") ;
+                    (tokenize " 0 1 0 0 0 0 0 ;
+                                1 0 0 0 1 0 0 ;
+                                0 0 1 0 1 0 0 0 1 ;
+                                0 0 0 0 1 0 1 0 1 ;
+                                0 0 0 0 1 0 1 0 1 0 1 ;
+                                0 0 0 0 0 0 0 0 0 0 0 ;")].
+
+
+Compute get_num_const ["7"%string; ";"%string].
+
+Definition our_cs_list :=  (tokenize " 1  0  0  0  0  0  0 ;
+                                0  1  0  0  0  0  0 ;
+                                1  0  1  0  0  0  0 ;
+                                1 -1  0  0  1  0  0 ;
+                               -1  1  0  0 -1  0  0 ;
+                               -1  0 -1  0  0  1  2 ;
+                                1  0  1  0  0 -1 -2 ;").
+
+Compute get_cs 3 7 our_cs_list.
+
+Compute map_list parseZList (divide_in_cs our_cs_list).
+
+Compute get_ds ["0"%string; "1"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; ";"%string; "1"%string; "0"%string; "0"%string; "0"%string; "1"%string; "0"%string;
+         "0"%string; ";"%string; "0"%string; "0"%string; "1"%string; "0"%string; "1"%string; "0"%string; "0"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string;
+         "0"%string; "0"%string; "1"%string; "0"%string; "1"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string; "0"%string; "0"%string; "1"%string; "0"%string;
+         "1"%string; "0"%string; "1"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string;
+                "0"%string; "0"%string; "0"%string; ";"%string].
 
 End Parser.
