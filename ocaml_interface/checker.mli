@@ -26,13 +26,9 @@ val sub : nat -> nat -> nat
 
 module Nat :
  sig
-  val add : nat -> nat -> nat
-
   val leb : nat -> nat -> bool
 
   val even : nat -> bool
-
-  val tail_add : nat -> nat -> nat
  end
 
 type positive =
@@ -107,11 +103,11 @@ module Z :
 
   val opp : z -> z
 
-  val sub : z -> z -> z
-
   val mul : z -> z -> z
 
   val compare : z -> z -> comparison
+
+  val ltb : z -> z -> bool
 
   val geb : z -> z -> bool
 
@@ -128,13 +124,22 @@ val nat_of_ascii : char -> nat
 
 val eqb0 : char list -> char list -> bool
 
+val length0 : char list -> nat
+
+val substring : nat -> nat -> char list -> char list
+
 type 'a t =
 | Nil
 | Cons of 'a * nat * 'a t
 
+val rectS :
+  ('a1 -> 'a2) -> ('a1 -> nat -> 'a1 t -> 'a2 -> 'a2) -> nat -> 'a1 t -> 'a2
+
 val caseS : ('a1 -> nat -> 'a1 t -> 'a2) -> nat -> 'a1 t -> 'a2
 
 val hd : nat -> 'a1 t -> 'a1
+
+val last : nat -> 'a1 t -> 'a1
 
 val const : 'a1 -> nat -> 'a1 t
 
@@ -143,12 +148,6 @@ val tl : nat -> 'a1 t -> 'a1 t
 val shiftin : nat -> 'a1 -> 'a1 t -> 'a1 t
 
 val append : nat -> nat -> 'a1 t -> 'a1 t -> 'a1 t
-
-val rev_append_tail : nat -> nat -> 'a1 t -> 'a1 t -> 'a1 t
-
-val rev_append : nat -> nat -> 'a1 t -> 'a1 t -> 'a1 t
-
-val rev0 : nat -> 'a1 t -> 'a1 t
 
 val map0 : ('a1 -> 'a2) -> nat -> 'a1 t -> 'a2 t
 
@@ -164,11 +163,13 @@ val vect_mul_Z : nat -> z -> z t -> z t
 
 val comb_conic : nat -> nat -> nat t -> constraints -> z t
 
-val is_gt_on_last : nat -> constraint0 -> constraint0 -> bool
+val is_ge_on_last : nat -> constraint0 -> constraint0 -> bool
 
-val is_minus_one : nat -> constraint0 -> bool
+val is_minus : nat -> constraint0 -> bool
 
 type lex_function = z t
+
+val without_last : nat -> z t -> z t
 
 val c_of_f : nat -> lex_function -> constraint0
 
@@ -187,7 +188,8 @@ val my_of_list : nat -> nat list -> nat t option
 val lex_func : nat -> nat -> constraints -> nat t -> constraint0 -> bool
 
 val is_lex :
-  nat -> nat -> constraints -> lex_function list -> (list_d * list_d) list -> bool
+  nat -> nat -> constraints -> lex_function list -> (list_d * list_d) list ->
+  bool
 
 module Parser :
  sig
@@ -217,32 +219,22 @@ module Parser :
 
   val parseDecNumber : char list -> nat option
 
-  val coq_Z_of_bool : bool -> z
-
-  val coq_Z_of_ascii : char -> z
-
-  val coq_Z_of_0 : z
-
-  val coq_Z_of_digit : char -> z option
-
-  val parseZNumber' : char list -> z -> z option
-
-  val parseZNumber : char list -> z option
+  val parseNatList : char list list -> nat list
 
   val parseZList : char list list -> z list
-
-  val parseNatList : char list list -> nat list
 
   val get_num_var : char list list -> nat option
 
   val get_num_const : char list list -> nat option
 
   val divide_in_cs' :
-    char list list list -> char list list -> char list list -> char list list list
+    char list list list -> char list list -> char list list -> char list list
+    list
 
   val divide_in_cs : char list list -> char list list list
 
-  val map_list : (char list list -> z list) -> char list list list -> z list list
+  val map_list :
+    (char list list -> z list) -> char list list list -> z list list
 
   val my_of_list_Z : nat -> z list -> z t option
 
@@ -250,7 +242,8 @@ module Parser :
 
   val ensure_c : nat -> z list -> constraint0 option
 
-  val ensure_cs' : nat -> nat -> constraint0 list -> z list list -> constraints option
+  val ensure_cs' :
+    nat -> nat -> constraint0 list -> z list list -> constraints option
 
   val ensure_cs : nat -> nat -> z list list -> constraints option
 
@@ -258,7 +251,8 @@ module Parser :
 
   val ensure_func : nat -> z list -> lex_function option
 
-  val ensure_lex' : nat -> lex_function list -> z list list -> lex_function list option
+  val ensure_lex' :
+    nat -> lex_function list -> z list list -> lex_function list option
 
   val ensure_lex : nat -> z list list -> lex_function list option
 
@@ -267,7 +261,8 @@ module Parser :
   val to_pair : nat list list -> (list_d * list_d) list
 
   val ensure_d' :
-    nat list list -> nat list list -> nat list list -> (list_d * list_d) list option
+    nat list list -> nat list list -> nat list list -> (list_d * list_d) list
+    option
 
   val ensure_d : nat list list -> (list_d * list_d) list option
 

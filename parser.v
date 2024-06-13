@@ -7,6 +7,9 @@ Require Import Hexadecimal HexadecimalFacts Arith.
 Require Import Coq.NArith.NArith.
 From Coq Require Import Lists.List. Import ListNotations.
 
+Require Import constraint.
+Require Import checker.
+
 Module Parser.
 
 Definition isWhite (c : ascii) : bool :=
@@ -120,12 +123,9 @@ Definition divide_in_cs (x : list string) : list (list string):=
 
 Definition map_list (f : list string -> list Z) (l : list (list string)) := map f l.
 
-
 Require Import Vector.
-Require Import constraint.
+
 Import VectorNotations.
-
-
 Local Open Scope vector_scope.
 Open Scope Z_scope.
 
@@ -186,7 +186,6 @@ Definition get_cs (n_var n_c : nat) (x : list string) : option (@constraints (S 
 
 Compute get_cs 1 2 (tokenize "1 2 3 ; 2 3 4 ;").
 
-Require Import checker.
 
 Definition ensure_func (n_var : nat) (x : list Z) : option (@lex_function n_var) :=
   my_of_list_Z (S n_var) x.
@@ -239,31 +238,31 @@ Definition get_ds (x : list string) : option (list ((list_d)*(list_d))) :=
 Definition check_loop (x : list (list string)) : bool :=
   match x with
   | [] => false
-  | x_0::xs0 => let n_var_opt := get_num_var x_0 in
+  | x_0::xs0 => let n_var_opt : option nat := get_num_var x_0 in
                 match n_var_opt with
                 | None => false
                 | Some n_var => match xs0 with
                                 | [] => false
-                                | x_1::xs1 => let n_c_opt := get_num_const x_1 in
+                                | x_1::xs1 => let n_c_opt : option nat := get_num_const x_1 in
                                               match n_c_opt with
                                               | None => false
                                               | Some n_c => match xs1 with
                                                             | [] => false
-                                                            | x_2::xs2 => let cs_opt := get_cs n_var n_c x_2 in
+                                                            | x_2::xs2 => let cs_opt : option (@constraints (S (n_var + n_var)) n_c) := get_cs n_var n_c x_2 in
                                                                           match cs_opt with
                                                                           | None => false
                                                                           | Some cs =>
                                                                               match xs2 with
                                                                               | [] => false
-                                                                              | x_3::xs3 => let fs_opt := get_lex_func n_var x_3 in
+                                                                              | x_3::xs3 => let fs_opt : option (list lex_function):= get_lex_func n_var x_3 in
                                                                                             match fs_opt with
                                                                                             | None => false
                                                                                             | Some fs => match xs3 with
                                                                                                          | [] => false
-                                                                                                         | x_4::xs4 => let ds_opt := get_ds x_4 in
+                                                                                                         | x_4::xs4 => let ds_opt : option (list (list_d*list_d)) := get_ds x_4 in
                                                                                                                        match ds_opt with
                                                                                                                        | None => false
-                                                                                                                       | Some ds => is_lex cs fs ds
+                                                                                                                       | Some ds => (@is_lex n_var n_c cs fs ds)
                                                                                                                        end
                                                                                                          end
                                                                                             end
@@ -274,6 +273,14 @@ Definition check_loop (x : list (list string)) : bool :=
                                 end
                 end
   end.
+
+
+(*Some examples to ensure everything works smoothly*)
+
+Compute lex_func [[1; 0; 0];[1; -1; -1]]%vector [1%nat; 0%nat]%vector (c_of_f [1; 0]%vector).
+
+Compute (@is_lex 1 2 [[1; 0; 0];[1; -1; -1]]%vector [[1;0]%vector] [([1%nat; 0%nat], [0%nat;1%nat]); ([0%nat;1%nat;1%nat;0%nat], [0%nat;0%nat;0%nat;0%nat])]).
+ 
 
 Compute check_loop [(tokenize "3 ; ");
                     (tokenize "7 ; ");
@@ -288,30 +295,9 @@ Compute check_loop [(tokenize "3 ; ");
                                 0  0  1  0 ;") ;
                     (tokenize " 0 1 0 0 0 0 0 ;
                                 1 0 0 0 1 0 0 ;
-                                0 0 1 0 1 0 0 0 1 ;
-                                0 0 0 0 1 0 1 0 1 ;
-                                0 0 0 0 1 0 1 0 1 0 1 ;
+                                0 0 1 0 1 0 0 1 0 ;
+                                0 0 0 0 1 0 1 1 0 ;
+                                0 0 0 0 1 0 1 1 0 1 0 ;
                                 0 0 0 0 0 0 0 0 0 0 0 ;")].
-
-
-Compute get_num_const ["7"%string; ";"%string].
-
-Definition our_cs_list :=  (tokenize " 1  0  0  0  0  0  0 ;
-                                0  1  0  0  0  0  0 ;
-                                1  0  1  0  0  0  0 ;
-                                1 -1  0  0  1  0  0 ;
-                               -1  1  0  0 -1  0  0 ;
-                               -1  0 -1  0  0  1  2 ;
-                                1  0  1  0  0 -1 -2 ;").
-
-Compute get_cs 3 7 our_cs_list.
-
-Compute map_list parseZList (divide_in_cs our_cs_list).
-
-Compute get_ds ["0"%string; "1"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; ";"%string; "1"%string; "0"%string; "0"%string; "0"%string; "1"%string; "0"%string;
-         "0"%string; ";"%string; "0"%string; "0"%string; "1"%string; "0"%string; "1"%string; "0"%string; "0"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string;
-         "0"%string; "0"%string; "1"%string; "0"%string; "1"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string; "0"%string; "0"%string; "1"%string; "0"%string;
-         "1"%string; "0"%string; "1"%string; "0"%string; "1"%string; ";"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string; "0"%string;
-                "0"%string; "0"%string; "0"%string; ";"%string].
 
 End Parser.

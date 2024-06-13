@@ -1,5 +1,4 @@
- 
-let filename = "example.txt"    
+let filename = "example_2.txt"    
 
 let read_lines name : string list =
   let ic = open_in name in
@@ -24,7 +23,8 @@ let () =
 try
     let lines = read_lines filename in
     let res = Parser.check_loop (List.map Parser.tokenize (List.map explode lines))   in
+    (**print_list(entrada);**)
     print_string("Resultado: ");
-    if res then print_string("Todo correcto") else print_string("Ha ocurrido un error");
+    if res then print_string("Todo correcto\n") else print_string("Ha ocurrido un error\n");
     flush stdout
 with e -> raise e

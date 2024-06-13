@@ -17,7 +17,6 @@ Definition constraints {n_v : nat} {n_c : nat } : Type := t (@constraint n_v) n_
 (*When defining a model we should allways add a 1 at the end*)
 Definition assignment { n : nat} : Type := t Z n.
 
-
 (*Functions*)
 
 (*Given an inequation and a map of values (x_i -> m_i) we subtitute those at the inequation*)
@@ -35,9 +34,7 @@ Definition is_model_c {n : nat} (c : @constraint n) (model : @assignment n) : bo
   (eval c model) >=? 0.
 
 Example test_is_model_c : is_model_c  [1; 2; 3] [1; 2; 3] = true.
-Proof.
-  reflexivity.
-Qed.
+Proof.  reflexivity. Qed.
 
 (*Given a list of constraints and an assignmet check if all of them are greater than zero*)
 Fixpoint is_model {n_v : nat} {n_c : nat} :  (@constraints n_v n_c) -> (@assignment n_v) -> bool :=
@@ -60,6 +57,7 @@ Fixpoint vect_mul {n : nat} (a : nat) (v : t Z n) : t Z n :=
   | b :: v' => (Z.of_nat(a)*b) :: (vect_mul a v')
   end.
 
+(*Scalar multiplication of vector*)
 Fixpoint vect_mul_Z {n : nat} (a : Z) (v : t Z n) : t Z n :=
   match v with
   | [] => []
@@ -85,11 +83,6 @@ Fixpoint adapt {n : nat } : @assignment n -> @assignment (S n):=
 
 (*Lemmas for the soundness of the imp_checker*)
 
-Lemma eq_snd : forall x y : Z, (x =? y) = true <-> x = y.
-Proof.
-  exact Z.eqb_eq.
-Qed.
-
 Lemma le_snd : forall x y : Z, (x >=? y) = true <-> x >= y.
 Proof.
   repeat rewrite Z.ge_le_iff.
@@ -112,7 +105,7 @@ Proof.
   reflexivity. rewrite m_gt_z. reflexivity. rewrite n_gt_z. reflexivity.
 Qed.
 
-(*Propiedades sobre la suma y el producto con escalares de vectores*)
+(*Properties over the sum and product of scalars over vectors*)
 
 Lemma vect_add_snd : forall {n_v : nat} (c1 c2 : @constraint n_v) (model : @assignment n_v),
    (eval c1 model) + (eval c2 model) = eval (vect_add c1 c2) model.
@@ -151,7 +144,6 @@ Proof.
     simpl. lia.
   - (* n_v = S n_v' *)
     rewrite <- vect_add_snd.
-    Search Z.add ?p ?g Z.lt 0.
     apply Z.add_neg_cases.
 Qed.
     
@@ -190,6 +182,7 @@ Proof.
   lia.
 Qed.
 
+(*Lemma ofver the constraint that is all zero*)
 Lemma eval_0_gt_0 : forall (n : nat) (model :  @assignment n),
     eval (const 0 n) model >=? 0 = true.
 Proof.
@@ -202,31 +195,27 @@ Proof.
     exact IHmodel'.
 Qed.
 
-
+(*Lemma that ensures that if a cs is model then its conic combination is also model*)
 Lemma comb_conic_is_gt : forall {n_v : nat} {n_c : nat} (cs : @constraints n_v n_c) (d : t nat n_c) (model : assignment),
     is_model cs model = true -> is_model_c (comb_conic d cs) model = true.
 Proof.
   intros n_v n_c cs d model.
   induction n_c as [| n_c'].
   - (*n_c = 0*) simpl.
-    unfold is_model_c.
-    rewrite eval_0_gt_0.
+    unfold is_model_c. rewrite eval_0_gt_0.
     reflexivity.
   - (*n_c = S n_c'*)
     simpl.
-    rewrite Bool.andb_true_iff.
-    intro precond.
+    rewrite Bool.andb_true_iff. intro precond.
     rewrite vect_add_gt_is_gt.
     reflexivity.
     rewrite vect_mul_gt_is_gt.
     reflexivity.
-    destruct precond.
-    rewrite H.
+    destruct precond. rewrite H.
     reflexivity.
     rewrite IHn_c'.
     reflexivity.
-    destruct precond.
-    rewrite H0.
+    destruct precond. rewrite H0.
     reflexivity.
 Qed.
 
@@ -238,26 +227,27 @@ Definition is_equal { n_v : nat } {n_c : nat }(d : t nat n_c) (cs : @constraints
 Example test_is_equal : is_equal [1%nat;1%nat] [[1;1]%vector;[1;1]%vector]%list [2; 2] = true.
 Proof. reflexivity. Qed.
 
-Fixpoint is_gt_on_last {n_v : nat } : @constraint n_v -> @constraint n_v -> bool :=
+(*Functios that checks if all coeficients of two contraints are equal except the last which has to be ge*)
+Fixpoint is_ge_on_last {n_v : nat } : @constraint n_v -> @constraint n_v -> bool :=
   match n_v with
   | 0%nat => fun _ _ => true
   | S n_v' => match n_v' with
               | 0%nat => fun c c' => hd c' >=? hd c
-              | n => fun c c' => ((hd c =? hd c') && (@is_gt_on_last n (tl c) (tl c')))%bool
+              | n => fun c c' => ((hd c =? hd c') && (@is_ge_on_last n (tl c) (tl c')))%bool
               end                                                                     
   end.
 
-Example test_is_gt_on_last_1 : is_gt_on_last [1;2;3] [1;2;4] = true.
-Proof. reflexivity. Qed.                                                                 
+Example test_is_ge_on_last_1 : is_ge_on_last [1;2;3] [1;2;4] = true.
+Proof. simpl. reflexivity. Qed.                                                                 
 
-Example test_is_gt_on_last_2 : is_gt_on_last [1;2;3] [1;2;2] = false.
+Example test_is_ge_on_last_2 : is_ge_on_last [1;2;3] [1;2;2] = false.
 Proof. reflexivity. Qed.
 
-Example test_is_gt_on_last_3 : is_gt_on_last [1;3;3] [1;2;3] = false.
+Example test_is_ge_on_last_3 : is_ge_on_last [1;3;3] [1;2;3] = false.
 Proof. reflexivity. Qed.
 
 Lemma eval_is_gt : forall {n_v :nat} (c c' : @constraint ( S n_v)) (model : assignment),
-    @is_gt_on_last (S n_v) c c' = true -> (*is_model_c c model = true ->*)
+    @is_ge_on_last (S n_v) c c' = true ->
     @eval (S n_v) c' (adapt model) >= @eval (S n_v) c (adapt model).
 Proof.
   intro n_v.
@@ -265,22 +255,22 @@ Proof.
   - (*n_v = 0 -> S n_v = 1 *)
     (*Caso en que solo tenemos la constante*)
     intros c c' model.
-    intro is_gt_on_last_true.
-    simpl. simpl in is_gt_on_last_true. rewrite le_snd in is_gt_on_last_true.
+    intro is_ge_on_last_true.
+    simpl. simpl in is_ge_on_last_true. rewrite le_snd in is_ge_on_last_true.
     lia.
   - (*n_v = S n_v' -> S n_v = S S n_v'*)
     (*Caso en que tenemos algo más que la constante*)
     intros c c' model.
-    intro is_gt_on_last_true. simpl in is_gt_on_last_true.
+    intro is_ge_on_last_true. simpl in is_ge_on_last_true.
     destruct n_v'.
     --(*n_v' = 0*)
-      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
-      rewrite eq_snd in H. rewrite le_snd in H0.
+      rewrite Bool.andb_true_iff in is_ge_on_last_true. destruct is_ge_on_last_true.
+      rewrite Z.eqb_eq in H. rewrite le_snd in H0.
       simpl. repeat rewrite Z.add_0_r. repeat rewrite <- Zred_factor0.
       lia.
     --(*n_v' = S n_''*)
-      rewrite Bool.andb_true_iff in is_gt_on_last_true. destruct is_gt_on_last_true.
-      rewrite eq_snd in H. unfold is_model_c.
+      rewrite Bool.andb_true_iff in is_ge_on_last_true. destruct is_ge_on_last_true.
+      rewrite Z.eqb_eq in H. unfold is_model_c.
       apply (@IHn_v' (tl c) (tl c') (tl model)) in H0.
       simpl. rewrite H. simpl in H0. lia.      
 Qed.
@@ -310,7 +300,7 @@ Proof.
     lia.
   - (* n_v = (S n_v')*)  
     simpl. rewrite Bool.andb_true_iff. intro h. destruct h.
-    rewrite eq_snd in H. rewrite H. apply (@IHn_v' (tl c) (tl model)) in H0.
+    rewrite Z.eqb_eq in H. rewrite H. apply (@IHn_v' (tl c) (tl model)) in H0.
     simpl in H0. rewrite Z.mul_0_l. rewrite Z.add_0_l. exact H0.
 Qed.
 
@@ -340,7 +330,7 @@ Proof.
   induction n_v as [| n_v' IHn_v'].
   simpl. reflexivity.
   simpl. rewrite Bool.andb_true_iff. split.
-  rewrite eq_snd. reflexivity. rewrite IHn_v'. reflexivity.
+  rewrite Z.eqb_eq. reflexivity. rewrite IHn_v'. reflexivity.
 Qed.
 
 Lemma same_vector_snd {n_v : nat } :
@@ -350,7 +340,7 @@ Proof.
   induction n_v as [| n_v' IHn_v'].
   - intros same. rewrite nil_spec. rewrite (@nil_spec Z c1). reflexivity.
   - simpl. intros h. rewrite Bool.andb_true_iff in h. destruct h.
-    apply IHn_v' in H0. rewrite eq_snd in H. rewrite eta. rewrite (@eta Z n_v' c1).
+    apply IHn_v' in H0. rewrite Z.eqb_eq in H. rewrite eta. rewrite (@eta Z n_v' c1).
     rewrite H. rewrite H0. reflexivity.
 Qed.
     
@@ -399,7 +389,7 @@ Proof.
     left.
     unfold is_model_c. simpl. rewrite Z.geb_leb. rewrite Z.leb_gt.
     replace (hd cs) with c.
-    exact H0. rewrite eq_snd in H. rewrite  (@eta Z n_v c). rewrite (@eta Z n_v (hd cs)).
+    exact H0. rewrite Z.eqb_eq in H. rewrite  (@eta Z n_v c). rewrite (@eta Z n_v (hd cs)).
     rewrite H. apply same_vector_snd in H1. rewrite H1. reflexivity.
 
     rewrite Bool.andb_false_iff. right. apply IHn_c'. exists c.

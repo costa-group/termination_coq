@@ -11,7 +11,7 @@ Require Import constraint.
 
 Import VectorNotations.
 
-(*We dont need to check they have the same length because we use vector*)
+(*We don't need to check they have the same length because we use vector*)
 
 Local Open Scope Z_scope.
 Local Open Scope vector_scope.
@@ -19,10 +19,12 @@ Local Open Scope vector_scope.
 (* Definition of imp_checker and the snd that it works*)
 Definition imp_checker {n_v : nat} {n_c : nat }: Type := @constraints n_v n_c -> @constraint n_v -> bool.
 
+(* Returns true if the cs implie the c *)
 Definition cs_imp_c {n_v n_c : nat} (cs : constraints) (c : constraint) : Prop :=
   forall (model : @assignment (n_v)),
     @is_model (S n_v) n_c cs (adapt model) = true -> @is_model_c (S n_v) c (adapt model) = true.
 
+(*Returns true if the cs implie the cs' *)
 Fixpoint cs_imp_cs' {n_v n_c n_c' : nat} : (@constraints (S n_v) n_c) -> (@constraints (S n_v) n_c') -> Prop :=
   match n_c' with
   | 0%nat => fun _ _ => True
@@ -34,6 +36,7 @@ Definition imp_checker_snd {n_v : nat} {n_c : nat } (chkr : @imp_checker (S n_v)
     chkr cs c = true ->
      cs_imp_c cs c.
 
+(*Ensures that if c_comb is comb_conic of cs and d then cs implies c_comb *)
 Lemma comb_conic_is_model : forall {n_v n_c : nat},
   forall (cs : constraints) (c_comb : @constraint (S n_v)) (d : t nat n_c) (model : assignment),
     is_equal d cs c_comb = true ->
@@ -80,26 +83,27 @@ Qed.
 Lemma farkas_gt : forall {n_v : nat},
   forall (c c' : @constraint (S n_v)) (model : assignment),
     is_model_c c (adapt model) = true
-    -> is_gt_on_last c c' = true                                   
+    -> is_ge_on_last c c' = true                                   
     -> is_model_c c' (adapt model) = true.
 Proof.
   intros n_v c c' model.
   unfold is_model_c.
   intro is_model_c. rewrite le_snd in is_model_c.
-  intro is_gt_on_last_true.
-  apply (@eval_is_gt (n_v) c c' (model)) in is_gt_on_last_true.
+  intro is_ge_on_last_true.
+  apply (@eval_is_gt (n_v) c c' (model)) in is_ge_on_last_true.
   rewrite le_snd.
   apply (@Zge_trans (eval c' (adapt model)) (eval c (adapt model)) 0).
-  exact is_gt_on_last_true.
+  exact is_ge_on_last_true.
   exact is_model_c.
 Qed.
 
+(* Farka's Lemma*)
 Theorem farkas : forall {n_v n_c : nat},
   forall (cs : constraints) (d : t nat n_c) (c_comb : @constraint (S n_v)),
     is_equal d cs c_comb = true ->
     forall (model : @assignment n_v) (c : @constraint (S n_v)), 
     is_model cs (adapt model) = true ->
-    is_gt_on_last c_comb c = true ->
+    is_ge_on_last c_comb c = true ->
     is_model_c c (adapt model) = true.
 Proof.
   intros n_v n_c cs d c_comb.
@@ -109,12 +113,14 @@ Proof.
   assumption. assumption. assumption.
 Qed.
 
+(* What it means to be unsatisfatiable*)
 Definition unsat {n_v n_c : nat} (cs : @constraints (S n_v) n_c) :=
   forall (model : @assignment n_v),
     is_model cs (adapt model) = false.
-    
+
+(* Sufficient condition for being unsat*)
 Lemma unsat_suf : forall {n_v n_c : nat} (cs : @constraints (S n_v) n_c) (d : t nat n_c),
-    is_minus_one (comb_conic d cs) = true ->
+    is_minus (comb_conic d cs) = true ->
     unsat cs.
 Proof.
   intros n_v n_c cs d.
@@ -132,20 +138,30 @@ Qed.
 
 Definition lex_function {n_var : nat} := t Z (S n_var).
 
-(*This function receives a lex funciton and returns the corresponding constraint*)
+(* Auxiliar function that truncates last element of vector*)
+Fixpoint without_last {n_var : nat} : (t Z (S n_var)) -> t Z n_var :=
+  match n_var with
+  | 0%nat => fun _ => []
+  | S n => fun f => (hd f)::(without_last (tl f))
+  end.
+
+(*This function receives a lex function and returns the corresponding constraint*)
 Definition c_of_f {n_var : nat} (f : @lex_function n_var) :  @constraint (S (n_var + n_var)) :=
-  let rev_f := (rev f) in
-  let const_f := hd rev_f in
-  let coef := rev (tl rev_f) in
+  let const_f := (Vector.last f) in
+  let coef := without_last f in
   shiftin const_f (coef ++ (const 0 n_var)).
 
-(*This function receives a lex funciton and returns the corresponding constraint with the signus changed*)
+Example test_c_of_f : c_of_f [1;0]%vector = [1;0;0].
+Proof. reflexivity. Qed.
+
+(*This function receives a lex function and returns the corresponding constraint with the signus changed*)
 Definition c_of_f' {n_var : nat} (f : @lex_function n_var) :  @constraint (S (n_var + n_var)) :=
-  let rev_f := (rev f) in
-  let const_f := hd rev_f in
-  let coef := rev (tl rev_f) in
+  let const_f := Vector.last f in
+  let coef := without_last f in
   shiftin (-const_f) ((const 0 n_var) ++ (map (fun x => -x) coef)).
 
+Example test_c_of_f' : c_of_f' [1; 0]%vector = [0;-1;0].
+Proof. reflexivity. Qed.
 
 (* This function returns the constaint that represent the condition f1(x) - f1(x') >= 0 *)
 Definition cs_f_i_minus_f_i' {n_var : nat} (f : @lex_function n_var) : @constraint (S (n_var + n_var)) :=
@@ -157,19 +173,22 @@ Definition cs_f_i'_minus_f_i {n_var : nat} (f : @lex_function n_var) : @constrai
 Definition cs_of_two {n_var : nat} (c c' : @constraint n_var) : constraints :=
   shiftin c' (shiftin c []).
 
-(* This function receive a couple of contraint and returns its composition in a constraints*)
+(* This function receives a set of constraints(cs) and a ranking function(f)
+   and returns its composition in a set of constraints *)
 Definition new_cs {n_var n_c : nat} (cs : @constraints (S (n_var + n_var)) n_c)  (f : @lex_function n_var) : constraints :=
  shiftin (cs_f_i_minus_f_i' f) (shiftin (cs_f_i'_minus_f_i f) cs).
 
 Definition cs_f_i_minus_f_i'_is_zero {n_var : nat} (f : @lex_function n_var) :  constraints :=
   cs_of_two (cs_f_i_minus_f_i' f) (cs_f_i'_minus_f_i f).
 
+(*Representations of the Ds*)
 Definition list_d := list nat.
 
 Require Import List.
 
 Import ListNotations.
 
+(*Defined to ensure Coq that the lists we are working are the rigth length*)
 Fixpoint my_of_list (n : nat) (l: list nat) : option (t nat n) :=
   match l with
   | []%list =>
@@ -187,9 +206,12 @@ Fixpoint my_of_list (n : nat) (l: list nat) : option (t nat n) :=
       end
   end.
 
+(*Function that checks if the d's provided suit the set of constraints(cs) and the ranking function(f)*)
 Definition lex_func {n_var n_c} (cs : @constraints (S n_var) n_c) (d : t nat n_c) (f : @constraint (S n_var)) : bool :=
-  is_gt_on_last (comb_conic d cs) f.
-                                                                                      
+  is_ge_on_last (comb_conic d cs) f.
+
+(*Functions that checks if the loop represented by the set of constraints(cs) ends given a list of
+  ranking functions(f) and the d's*)
 Fixpoint is_lex {n_var n_c : nat} (cs : @constraints (S (n_var + n_var)) n_c) (list_f : list (@lex_function n_var)) (list_of_d : list ((list_d)*(list_d))) : bool :=
   match list_f with
   | [] => match list_of_d with
@@ -198,7 +220,7 @@ Fixpoint is_lex {n_var n_c : nat} (cs : @constraints (S (n_var + n_var)) n_c) (l
                      let vec_d := my_of_list n_c d_i in
                      match vec_d with
                      | None => false
-                     | Some v => is_minus_one (comb_conic v cs)
+                     | Some v => is_minus (comb_conic v cs)
                      end
           end
   | f::fs =>let f_i := c_of_f f in
@@ -241,6 +263,7 @@ Inductive Lex {n_var n_c : nat} : (@constraints (S (n_var + n_var)) n_c) -> list
     (H3 : Lex  (new_cs cs f) fs)
   : (Lex cs list_f).
 
+(*Some auxiliar lemmas*)
 Lemma aux_eq_comb_conic :
   forall {n_var n_c : nat}
          (cs : @constraints (S n_var) n_c)
@@ -251,7 +274,7 @@ Proof.
   unfold is_equal.
   rewrite eqb_eq.
   reflexivity.
-  exact eq_snd.
+  exact Z.eqb_eq.
 Qed. 
   
 Lemma is_equal_imp :
@@ -271,6 +294,7 @@ Proof.
   exact H.
 Qed.
 
+(*Theorem that ensures that when the function is_lex says true is sufficient for proving Lex *) 
 Theorem is_lex_imp_Lex :
   forall {n_var : nat}
          (list_f : list (@lex_function n_var))

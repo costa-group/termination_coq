@@ -68,13 +68,6 @@ let rec sub n0 m =
 
 module Nat =
  struct
-  (** val add : nat -> nat -> nat **)
-
-  let rec add n0 m =
-    match n0 with
-    | O -> m
-    | S p -> S (add p m)
-
   (** val leb : nat -> nat -> bool **)
 
   let rec leb n0 m =
@@ -91,13 +84,6 @@ module Nat =
   | S n1 -> (match n1 with
              | O -> false
              | S n' -> even n')
-
-  (** val tail_add : nat -> nat -> nat **)
-
-  let rec tail_add n0 m =
-    match n0 with
-    | O -> m
-    | S n1 -> tail_add n1 (S m)
  end
 
 type positive =
@@ -132,10 +118,11 @@ module Pos =
        | XI q -> XO (add_carry p q)
        | XO q -> XI (add p q)
        | XH -> XO (succ p))
-    | XO p -> (match y with
-               | XI q -> XI (add p q)
-               | XO q -> XO (add p q)
-               | XH -> XI p)
+    | XO p ->
+      (match y with
+       | XI q -> XI (add p q)
+       | XO q -> XO (add p q)
+       | XH -> XI p)
     | XH -> (match y with
              | XI q -> XO (succ q)
              | XO q -> XI q
@@ -155,10 +142,11 @@ module Pos =
        | XI q -> XO (add_carry p q)
        | XO q -> XI (add p q)
        | XH -> XO (succ p))
-    | XH -> (match y with
-             | XI q -> XI (succ q)
-             | XO q -> XO (succ q)
-             | XH -> XI XH)
+    | XH ->
+      (match y with
+       | XI q -> XI (succ q)
+       | XO q -> XO (succ q)
+       | XH -> XI XH)
 
   (** val pred_double : positive -> positive **)
 
@@ -363,11 +351,6 @@ module Z =
   | Zpos x0 -> Zneg x0
   | Zneg x0 -> Zpos x0
 
-  (** val sub : z -> z -> z **)
-
-  let sub m n0 =
-    add m (opp n0)
-
   (** val mul : z -> z -> z **)
 
   let mul x y =
@@ -395,9 +378,17 @@ module Z =
     | Zpos x' -> (match y with
                   | Zpos y' -> Pos.compare x' y'
                   | _ -> Gt)
-    | Zneg x' -> (match y with
-                  | Zneg y' -> compOpp (Pos.compare x' y')
-                  | _ -> Lt)
+    | Zneg x' ->
+      (match y with
+       | Zneg y' -> compOpp (Pos.compare x' y')
+       | _ -> Lt)
+
+  (** val ltb : z -> z -> bool **)
+
+  let ltb x y =
+    match compare x y with
+    | Lt -> true
+    | _ -> false
 
   (** val geb : z -> z -> bool **)
 
@@ -431,7 +422,8 @@ module Z =
 
 let rec n_of_digits = function
 | [] -> N0
-| b::l' -> N.add (if b then Npos XH else N0) (N.mul (Npos (XO XH)) (n_of_digits l'))
+| b::l' ->
+  N.add (if b then Npos XH else N0) (N.mul (Npos (XO XH)) (n_of_digits l'))
 
 (** val n_of_ascii : char -> n **)
 
@@ -462,9 +454,42 @@ let rec eqb0 s1 s2 =
      | [] -> false
      | c2::s2' -> if (=) c1 c2 then eqb0 s1' s2' else false)
 
+(** val length0 : char list -> nat **)
+
+let rec length0 = function
+| [] -> O
+| _::s' -> S (length0 s')
+
+(** val substring : nat -> nat -> char list -> char list **)
+
+let rec substring n0 m s =
+  match n0 with
+  | O ->
+    (match m with
+     | O -> []
+     | S m' -> (match s with
+                | [] -> s
+                | c::s' -> c::(substring O m' s')))
+  | S n' -> (match s with
+             | [] -> s
+             | _::s' -> substring n' m s')
+
 type 'a t =
 | Nil
 | Cons of 'a * nat * 'a t
+
+(** val rectS :
+    ('a1 -> 'a2) -> ('a1 -> nat -> 'a1 t -> 'a2 -> 'a2) -> nat -> 'a1 t -> 'a2 **)
+
+let rec rectS bas rect _ = function
+| Nil -> Obj.magic __
+| Cons (a, n0, v0) ->
+  (match n0 with
+   | O ->
+     (match v0 with
+      | Nil -> bas a
+      | Cons (x, x0, x1) -> Obj.magic __ x x0 x1)
+   | S nn' -> rect a nn' v0 (rectS bas rect nn' v0))
 
 (** val caseS : ('a1 -> nat -> 'a1 t -> 'a2) -> nat -> 'a1 t -> 'a2 **)
 
@@ -476,6 +501,11 @@ let caseS h _ = function
 
 let hd n0 =
   caseS (fun h _ _ -> h) n0
+
+(** val last : nat -> 'a1 t -> 'a1 **)
+
+let last n0 =
+  rectS (fun a -> a) (fun _ _ _ h -> h) n0
 
 (** val const : 'a1 -> nat -> 'a1 t **)
 
@@ -501,23 +531,6 @@ let rec append _ p v w =
   | Nil -> w
   | Cons (a, n0, v') -> Cons (a, (add n0 p), (append n0 p v' w))
 
-(** val rev_append_tail : nat -> nat -> 'a1 t -> 'a1 t -> 'a1 t **)
-
-let rec rev_append_tail _ p v w =
-  match v with
-  | Nil -> w
-  | Cons (a, n0, v') -> rev_append_tail n0 (S p) v' (Cons (a, p, w))
-
-(** val rev_append : nat -> nat -> 'a1 t -> 'a1 t -> 'a1 t **)
-
-let rev_append =
-  rev_append_tail
-
-(** val rev0 : nat -> 'a1 t -> 'a1 t **)
-
-let rev0 n0 v =
-  rev_append n0 O v Nil
-
 (** val map0 : ('a1 -> 'a2) -> nat -> 'a1 t -> 'a2 t **)
 
 let rec map0 f _ = function
@@ -533,7 +546,8 @@ type constraints = constraint0 t
 let rec vect_add _ v1 v2 =
   match v1 with
   | Nil -> Nil
-  | Cons (x1, n0, v1') -> Cons ((Z.add x1 (hd n0 v2)), n0, (vect_add n0 v1' (tl n0 v2)))
+  | Cons (x1, n0, v1') ->
+    Cons ((Z.add x1 (hd n0 v2)), n0, (vect_add n0 v1' (tl n0 v2)))
 
 (** val vect_mul : nat -> nat -> z t -> z t **)
 
@@ -556,9 +570,9 @@ let rec comb_conic n_v n_c x x0 =
     vect_add n_v (vect_mul n_v (hd n_c' x) (hd n_c' x0))
       (comb_conic n_v n_c' (tl n_c' x) (tl n_c' x0))
 
-(** val is_gt_on_last : nat -> constraint0 -> constraint0 -> bool **)
+(** val is_ge_on_last : nat -> constraint0 -> constraint0 -> bool **)
 
-let rec is_gt_on_last n_v x x0 =
+let rec is_ge_on_last n_v x x0 =
   match n_v with
   | O -> true
   | S n_v' ->
@@ -566,31 +580,36 @@ let rec is_gt_on_last n_v x x0 =
      | O -> Z.geb (hd n_v' x0) (hd n_v' x)
      | S _ ->
        (&&) (Z.eqb (hd n_v' x) (hd n_v' x0))
-         (is_gt_on_last n_v' (tl n_v' x) (tl n_v' x0)))
+         (is_ge_on_last n_v' (tl n_v' x) (tl n_v' x0)))
 
-(** val is_minus_one : nat -> constraint0 -> bool **)
+(** val is_minus : nat -> constraint0 -> bool **)
 
-let rec is_minus_one n_v c =
+let rec is_minus n_v c =
   match n_v with
-  | O -> Z.eqb (hd O c) (Zneg XH)
-  | S n_v' -> (&&) (Z.eqb (hd (S n_v') c) Z0) (is_minus_one n_v' (tl (S n_v') c))
+  | O -> Z.ltb (hd O c) Z0
+  | S n_v' -> (&&) (Z.eqb (hd (S n_v') c) Z0) (is_minus n_v' (tl (S n_v') c))
 
 type lex_function = z t
+
+(** val without_last : nat -> z t -> z t **)
+
+let rec without_last n_var x =
+  match n_var with
+  | O -> Nil
+  | S n0 -> Cons ((hd (S n0) x), n0, (without_last n0 (tl (S n0) x)))
 
 (** val c_of_f : nat -> lex_function -> constraint0 **)
 
 let c_of_f n_var f =
-  let rev_f = rev0 (S n_var) f in
-  let const_f = hd n_var rev_f in
-  let coef = rev0 n_var (tl n_var rev_f) in
+  let const_f = last n_var f in
+  let coef = without_last n_var f in
   shiftin (add n_var n_var) const_f (append n_var n_var coef (const Z0 n_var))
 
 (** val c_of_f' : nat -> lex_function -> constraint0 **)
 
 let c_of_f' n_var f =
-  let rev_f = rev0 (S n_var) f in
-  let const_f = hd n_var rev_f in
-  let coef = rev0 n_var (tl n_var rev_f) in
+  let const_f = last n_var f in
+  let coef = without_last n_var f in
   shiftin (add n_var n_var) (Z.opp const_f)
     (append n_var n_var (const Z0 n_var) (map0 Z.opp n_var coef))
 
@@ -626,13 +645,15 @@ let rec my_of_list n0 = function
       | Some v -> Some (Cons (x, n', v))
       | None -> None))
 
-(** val lex_func : nat -> nat -> constraints -> nat t -> constraint0 -> bool **)
+(** val lex_func :
+    nat -> nat -> constraints -> nat t -> constraint0 -> bool **)
 
 let lex_func n_var n_c cs d f =
-  is_gt_on_last (S n_var) (comb_conic (S n_var) n_c d cs) f
+  is_ge_on_last (S n_var) (comb_conic (S n_var) n_c d cs) f
 
 (** val is_lex :
-    nat -> nat -> constraints -> lex_function list -> (list_d * list_d) list -> bool **)
+    nat -> nat -> constraints -> lex_function list -> (list_d * list_d) list
+    -> bool **)
 
 let rec is_lex n_var n_c cs list_f list_of_d =
   match list_f with
@@ -644,7 +665,8 @@ let rec is_lex n_var n_c cs list_f list_of_d =
        let vec_d = my_of_list n_c d_i in
        (match vec_d with
         | Some v ->
-          is_minus_one (add n_var n_var) (comb_conic (S (add n_var n_var)) n_c v cs)
+          is_minus (add n_var n_var)
+            (comb_conic (S (add n_var n_var)) n_c v cs)
         | None -> false))
   | f::fs ->
     let f_i = c_of_f n_var f in
@@ -676,7 +698,8 @@ module Parser =
     (||)
       ((||) (N.eqb n0 (Npos (XO (XO (XO (XO (XO XH)))))))
         (N.eqb n0 (Npos (XI (XO (XO XH))))))
-      ((||) (N.eqb n0 (Npos (XO (XI (XO XH))))) (N.eqb n0 (Npos (XI (XO (XI XH))))))
+      ((||) (N.eqb n0 (Npos (XO (XI (XO XH)))))
+        (N.eqb n0 (Npos (XI (XO (XI XH))))))
 
   type chartype =
   | Coq_white
@@ -712,7 +735,8 @@ module Parser =
 
   type token = char list
 
-  (** val tokenize_helper : chartype -> char list -> char list -> char list list **)
+  (** val tokenize_helper :
+      chartype -> char list -> char list -> char list list **)
 
   let rec tokenize_helper cls acc xs =
     let tk = match acc with
@@ -744,97 +768,26 @@ module Parser =
     | d::ds ->
       let n0 = nat_of_ascii d in
       if (&&)
-           (Nat.leb (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-             (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-             (S O)))))))))))))))))))))))))))))))))))))))))))))))) n0)
-           (Nat.leb n0 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-             (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-             (S (S (S (S (S (S (S (S (S (S (S
+           (Nat.leb (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+             (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+             (S (S (S (S (S (S (S (S
+             O)))))))))))))))))))))))))))))))))))))))))))))))) n0)
+           (Nat.leb n0 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+             (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+             (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
              O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
       then parseDecNumber' ds
              (add (mul (S (S (S (S (S (S (S (S (S (S O)))))))))) acc)
-               (sub n0 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-                 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
-                 (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))
+               (sub n0 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+                 (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+                 (S (S (S (S (S (S (S (S (S (S
+                 O))))))))))))))))))))))))))))))))))))))))))))))))))
       else None
 
   (** val parseDecNumber : char list -> nat option **)
 
   let parseDecNumber x =
     parseDecNumber' (list_of_string x) O
-
-  (** val coq_Z_of_bool : bool -> z **)
-
-  let coq_Z_of_bool = function
-  | true -> Zpos XH
-  | false -> Z0
-
-  (** val coq_Z_of_ascii : char -> z **)
-
-  let coq_Z_of_ascii a =
-    (* If this appears, you're using Ascii internals. Please don't *)
- (fun f c ->
-  let n = Char.code c in
-  let h i = (n land (1 lsl i)) <> 0 in
-  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
-      (fun b1 b2 b3 b4 b5 b6 b7 b8 ->
-      Z.add (coq_Z_of_bool b1)
-        (Z.mul (Zpos (XO XH))
-          (Z.add (coq_Z_of_bool b2)
-            (Z.mul (Zpos (XO XH))
-              (Z.add (coq_Z_of_bool b3)
-                (Z.mul (Zpos (XO XH))
-                  (Z.add (coq_Z_of_bool b4)
-                    (Z.mul (Zpos (XO XH))
-                      (Z.add (coq_Z_of_bool b5)
-                        (Z.mul (Zpos (XO XH))
-                          (Z.add (coq_Z_of_bool b6)
-                            (Z.mul (Zpos (XO XH))
-                              (Z.add (coq_Z_of_bool b7)
-                                (Z.mul (Zpos (XO XH)) (coq_Z_of_bool b8)))))))))))))))
-      a
-
-  (** val coq_Z_of_0 : z **)
-
-  let coq_Z_of_0 =
-    Zpos (XO (XO (XO (XO (XI XH)))))
-
-  (** val coq_Z_of_digit : char -> z option **)
-
-  let coq_Z_of_digit a =
-    let v = Z.sub (coq_Z_of_ascii a) coq_Z_of_0 in
-    (match Z.compare v Z0 with
-     | Eq -> Some v
-     | Lt -> None
-     | Gt -> (match Z.compare v (Zpos (XO (XI (XO XH)))) with
-              | Lt -> Some v
-              | _ -> None))
-
-  (** val parseZNumber' : char list -> z -> z option **)
-
-  let rec parseZNumber' x acc =
-    match x with
-    | [] -> Some acc
-    | d::ds ->
-      let n0 = coq_Z_of_digit d in
-      (match n0 with
-       | Some n_0 -> parseZNumber' ds (Z.add (Z.mul acc (Zpos (XO (XI (XO XH))))) n_0)
-       | None -> None)
-
-  (** val parseZNumber : char list -> z option **)
-
-  let parseZNumber x =
-    parseZNumber' (list_of_string x) Z0
-
-  (** val parseZList : char list list -> z list **)
-
-  let rec parseZList = function
-  | [] -> []
-  | x_0::xs ->
-    let num = parseZNumber x_0 in
-    (match num with
-     | Some z_0 -> z_0::(parseZList xs)
-     | None -> [])
 
   (** val parseNatList : char list list -> nat list **)
 
@@ -845,6 +798,22 @@ module Parser =
     (match num with
      | Some z_0 -> z_0::(parseNatList xs)
      | None -> [])
+
+  (** val parseZList : char list list -> z list **)
+
+  let rec parseZList = function
+  | [] -> []
+  | x_0::xs ->
+    if eqb0 (substring O (S O) x_0) ('-'::[])
+    then let n_x_0 = substring (S O) (sub (length0 x_0) (S O)) x_0 in
+         let num = parseDecNumber n_x_0 in
+         (match num with
+          | Some z_0 -> (Z.opp (Z.of_nat z_0))::(parseZList xs)
+          | None -> [])
+    else let num = parseDecNumber x_0 in
+         (match num with
+          | Some z_0 -> (Z.of_nat z_0)::(parseZList xs)
+          | None -> [])
 
   (** val get_num_var : char list list -> nat option **)
 
@@ -861,7 +830,8 @@ module Parser =
     get_num_var
 
   (** val divide_in_cs' :
-      char list list list -> char list list -> char list list -> char list list list **)
+      char list list list -> char list list -> char list list -> char list
+      list list **)
 
   let rec divide_in_cs' final act = function
   | [] -> final
@@ -895,7 +865,8 @@ module Parser =
         | Some v -> Some (Cons (x, n', v))
         | None -> None))
 
-  (** val my_of_list_cs : nat -> nat -> constraint0 list -> constraint0 t option **)
+  (** val my_of_list_cs :
+      nat -> nat -> constraint0 list -> constraint0 t option **)
 
   let rec my_of_list_cs n_var n0 = function
   | [] -> (match n0 with
@@ -971,7 +942,8 @@ module Parser =
      | x_2::xs -> app (combine (x_1::[]) (x_2::[])) (to_pair xs))
 
   (** val ensure_d' :
-      nat list list -> nat list list -> nat list list -> (list_d * list_d) list option **)
+      nat list list -> nat list list -> nat list list -> (list_d * list_d)
+      list option **)
 
   let rec ensure_d' res aux = function
   | [] ->
@@ -981,7 +953,7 @@ module Parser =
   | x'::xs ->
     (match aux with
      | [] -> ensure_d' res (app aux (x'::[])) xs
-     | _::_ -> ensure_d' (app res aux) [] xs)
+     | _::_ -> ensure_d' (app res (app aux (x'::[]))) [] xs)
 
   (** val ensure_d : nat list list -> (list_d * list_d) list option **)
 
@@ -1031,34 +1003,3 @@ module Parser =
            | None -> false))
      | None -> false)
  end
- 
- 
-let filename = "example.txt"    
-
-let read_lines name : string list =
-  let ic = open_in name in
-  let try_read () =
-    try Some (input_line ic) with End_of_file -> None in
-  let rec loop acc = match try_read () with
-    | Some s -> loop (s :: acc)
-    | None -> close_in ic; List.rev acc in
-  loop []
-  
-let explode s : char list =
-  let rec exp i l =
-    if i < 0 then l else exp (i - 1) (s.[i] :: l) in
-  exp (String.length s - 1) []
-
-  
-let rec print_list = function 
-[] -> ()
-| e::l -> print_string e ; print_string "\n" ; print_list l
-  
-let () = 
-try
-    let lines = read_lines filename in
-    let res = Parser.check_loop (List.map Parser.tokenize (List.map explode lines))   in
-    print_string("Resultado: ");
-    if res then print_string("Todo correcto\n") else print_string("Ha ocurrido un error\n");
-    flush stdout
-with e -> raise e
