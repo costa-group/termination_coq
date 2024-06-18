@@ -561,7 +561,7 @@ let rec vect_mul_Z _ a = function
 | Nil -> Nil
 | Cons (b, n0, v') -> Cons ((Z.mul a b), n0, (vect_mul_Z n0 a v'))
 
-(** val comb_conic : nat -> nat -> nat t -> constraints -> z t **)
+(** val comb_conic : nat -> nat -> nat t -> constraints -> constraint0 **)
 
 let rec comb_conic n_v n_c x x0 =
   match n_c with

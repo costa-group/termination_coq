@@ -161,7 +161,7 @@ val vect_mul : nat -> nat -> z t -> z t
 
 val vect_mul_Z : nat -> z -> z t -> z t
 
-val comb_conic : nat -> nat -> nat t -> constraints -> z t
+val comb_conic : nat -> nat -> nat t -> constraints -> constraint0
 
 val is_ge_on_last : nat -> constraint0 -> constraint0 -> bool
 

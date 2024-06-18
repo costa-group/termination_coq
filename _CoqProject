@@ -1,5 +1,8 @@
--R . termination
-constraint.v
-checker.v
-parser.v
+-R theories Termination
+
+-arg -w -arg -notation-overridden
+
+theories/constraint.v
+theories/checker.v
+theories/parser.v
 
