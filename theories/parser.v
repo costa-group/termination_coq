@@ -5,6 +5,7 @@ From Coq Require Import Strings.String.
 From Coq Require Import Strings.Ascii.
 Require Import Hexadecimal HexadecimalFacts Arith.
 Require Import Coq.NArith.NArith.
+Require Import Vector.
 From Coq Require Import Lists.List. Import ListNotations.
 
 Require Import constraint.
@@ -80,8 +81,6 @@ Fixpoint parseNatList (x : list string) : list nat :=
                end  
   end.
 
-Search Z ?p ?q.
-
 Fixpoint parseZList (x : list string) : list Z :=
   match x with
   | [] => []
@@ -99,8 +98,6 @@ Fixpoint parseZList (x : list string) : list Z :=
                  | None => []
                  end
   end.
-
-Compute parseZList ["34"%string].
 
 Definition get_num_var (x : list string) : option nat :=
   match parseNatList x with
@@ -123,7 +120,6 @@ Definition divide_in_cs (x : list string) : list (list string):=
 
 Definition map_list (f : list string -> list Z) (l : list (list string)) := map f l.
 
-Require Import Vector.
 
 Import VectorNotations.
 Local Open Scope vector_scope.
@@ -183,9 +179,6 @@ Definition ensure_cs (n_var n_c : nat) (x : list (list Z)) : option (@constraint
                                                                                                                                  
 Definition get_cs (n_var n_c : nat) (x : list string) : option (@constraints (S (n_var + n_var)) n_c) :=
   ensure_cs n_var n_c (map_list parseZList (divide_in_cs x)).
-
-Compute get_cs 1 2 (tokenize "1 2 3 ; 2 3 4 ;").
-
 
 Definition ensure_func (n_var : nat) (x : list Z) : option (@lex_function n_var) :=
   my_of_list_Z (S n_var) x.
@@ -277,6 +270,7 @@ Definition check_loop (x : list (list string)) : bool :=
 
 (*Some examples to ensure everything works smoothly*)
 
+(*
 Compute lex_func [[1; 0; 0];[1; -1; -1]]%vector [1%nat; 0%nat]%vector (c_of_f [1; 0]%vector).
 
 Compute (@is_lex 1 2 [[1; 0; 0];[1; -1; -1]]%vector [[1;0]%vector] [([1%nat; 0%nat], [0%nat;1%nat]); ([0%nat;1%nat;1%nat;0%nat], [0%nat;0%nat;0%nat;0%nat])]).
@@ -299,5 +293,5 @@ Compute check_loop [(tokenize "3 ; ");
                                 0 0 0 0 1 0 1 1 0 ;
                                 0 0 0 0 1 0 1 1 0 1 0 ;
                                 0 0 0 0 0 0 0 0 0 0 0 ;")].
-
+*)
 End Parser.

@@ -361,7 +361,6 @@ Proof.
     simpl. rewrite eval_const_0_is_0. lia.
   - (* n_c = S n_c' *)
     simpl. intro h.
-    Check vect_add_lt_is_lt.
     apply vect_add_lt_is_lt in h. destruct h.
     apply vect_mul_lt_is_lt in H.
     exists (hd cs). split. rewrite Bool.orb_true_iff.
